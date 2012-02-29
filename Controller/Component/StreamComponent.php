@@ -1,6 +1,6 @@
 <?php 
 
-App::import('Vendor', 'ActivityStream.ActivityEntry');#, array('file' => 'StreamActivity'.DS.'StreamActivity.php'));
+App::import('Vendor', 'ActivityStream.ActivityEntry', array('file' => 'ActivityEntry'.DS.'ActivityEntry.php'));
 
 class StreamComponent extends Component {
 	
@@ -20,14 +20,13 @@ class StreamComponent extends Component {
 		
 	}
 	
-	public function actor($use_session = true) {
+	public function actor($user = null) {
 		
-		$this->actor = new StreamObject(StreamObject::PERSON);
+		$this->actor = new ActivityObject(ActivityObject::PERSON);
 		
-		if ($use_session === true) {
+		if (!is_null($user)) {
 			
-			$user = $this->controller->Auth->user();			
-			$this->actor->id($user['id'])->displayName($user['name']);
+			$this->actor->id($user['User']['id'])->displayName($user['User']['username']);
 			
 		}
 		
@@ -35,9 +34,9 @@ class StreamComponent extends Component {
 		
 	}
 	
-	public function object() {
+	public function object($type) {
 		
-		$this->object = new StreamObject(StreamObject::EVENT);
+		$this->object = new ActivityObject($type);
 		
 		return $this->object;
 		
@@ -45,14 +44,30 @@ class StreamComponent extends Component {
 	
 	public function log($verb) {
 
-		$Activity = new StreamActivity();
+		$Activity = new ActivityEntry();
 		
 		if (!is_object($this->actor)) $this->actor();
 		
 		$Activity->actor($this->actor)->verb($verb)->object($this->object);
 
-		$this->controller->loadModel('Stream.Stream');		
-		$this->controller->Stream->save(array('content' => $Activity));	
+		$user_ids = $Activity->getRelIDs(ActivityObject::PERSON);
+
+		$this->controller->loadModel('ActivityStream.ActivityStreamActivity');		
+		
+		$data = array(
+			'ActivityStreamActivity' => array(
+				'content' => $Activity
+			),
+			'ActivityStreamTimeline' => array()
+		);
+		
+		foreach($user_ids as $user_id) {
+			
+			$data['ActivityStreamTimeline'][] = array('user_id' => $user_id);
+			
+		}
+		
+		$this->controller->ActivityStreamActivity->saveAssociated($data);	
 		
 	}
 	

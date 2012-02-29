@@ -5,6 +5,7 @@ include __DIR__ . '/ActivityObject.php';
 class ActivityEntry {
 	
 	const ADD = 'added';
+	const UPDATE = 'updated';
 	const POST = 'posted';
 	const SHARE = 'shared';
 	const INVITE = 'invited';
@@ -82,6 +83,22 @@ class ActivityEntry {
 	public function __toString() {
 		
 		return $this->toJson();
+		
+	}
+	
+	public function getRelIDs($type) {
+		
+		$ids = array();
+		
+		foreach($this->data as $obj) {
+			
+			if (!is_object($obj) || !method_exists($obj, 'get') || $obj->get('type') != $type) continue;
+			
+			$ids[] = $obj->get('id');
+			
+		}
+		
+		return $ids;
 		
 	}
 	
